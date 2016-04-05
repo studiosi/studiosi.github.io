@@ -10,8 +10,9 @@
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css">
         <link rel="stylesheet" href="css/style.css">
+        <link rel="stylesheet" href="css/glyph.css">
         
-        <title>STUDIOSI'S WEB TOOLBOX</title>
+        <title>STUDIOSI'S WEB TOOLBOX - UNICODE GLYPH RENDERER</title>
         
     </head>
     
@@ -21,14 +22,31 @@
             
             <div class="main">
             
-                <h1>STUDIOSI'S WEB TOOLBOX</h1>                
-                <p>Some tools developed by @ITStudiosi that may be useful for some people</p>
+                <h1>UNICODE GLYPH RENDERER (UTF16)</h1>   
+                <p>version 1.0 - Tested under Chrome 49.0</p>             
                             
             </div>
             
             <div class="main-content">
                 
-                <p><a href="glyphs.html">Unicode Glyph Renderer</a></p>
+                <div id="glyph" class="glyph">&#xFFFD;</div>
+                <div class="errors"><p id="error" class="error"></p></div>                                                   
+                
+                <form>
+                    
+                    <label for="codepoint">Codepoint</label>
+                    <input type="text" id="codepoint" />
+                    <input class="form-button" onclick="renderGlyph();" type="button" value="RENDER" />
+                    
+                </form>
+                
+                <p>Hexadecimal codepoints only</p>
+                
+            </div>
+            
+            <div class="back-container">
+                
+                <p><a class="back" href="index.html">&#x21DC; BACK</a></p>
                 
             </div>
             
@@ -36,6 +54,7 @@
         
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+        <script src="js/glyph.js"></script>
         
     </body>
     
