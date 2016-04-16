@@ -1,0 +1,135 @@
+﻿[ SOLUTION FOR Crackme by Fereter by ITStudiosi ]
+
+>>> Get the crackme here: http://crackmes.de/users/fereter/crackme_by_fereter_1./
+
+· Search for -> All intermodular calls
+· IsDebuggerPresent (!)
+· We see that it is in the message reading and processing procedure
+· Check the MSDN 
+
+	BOOL WINAPI IsDebuggerPresent(void);
+
+· Functions return on EAX
+· Apparently nothing is done with the return
+	> I call bullshit on this supposed "check"
+· Again: search for all intermodular calls
+· GetDlgItemInt -> BP
+	> Number input to EAX
+
+Code:           0F 31
+Mnemonic:       RDTSC [ReaD TimeStamp Counter]
+Description:	Loads the current value of the processor's time-stamp counter
+                into the EDX:EAX registers. The time-stamp counter is contained 
+                in a 64-bit MSR. The high-order 32 bits of the MSR are loaded 
+                into the EDX register, and the low-order 32 bits are loaded into 
+                the EAX register. The processor increments the time-stamp counter 
+                MSR every clock cycle and resets it to 0 whenever the processor 
+                is reset.
+                
+                The time stamp disable (TSD) flag in register CR4 restricts the 
+                use of the RDTSC instruction. When the TSD flag is clear, the 
+                RDTSC instruction can be executed at any privilege level; when the 
+                flag is set, the instruction can only be executed at privilege level 0. 
+                The time-stamp counter can also be read with the RDMSR instruction, 
+                when executing at privilege level 0. The RDTSC instruction is not a 
+                serializing instruction. Thus, it does not necessarily wait until all 
+                previous instructions have been executed before reading the counter. 
+                Similarly, subsequent instructions may begin execution before the read 
+                operation is performed.
+                
+                This instruction was introduced into the Intel Architecture in the 
+                Pentium processor.
+
+>> INTERESTING! This is the antidebugging trick! <<
+
+It is based on the fact that when debugging, we use some time on each step
+
+004031C4   . 0F31           RDTSC			// Load processor timestamp counter into EDX:EAX
+004031C6   . 89C1           MOV ECX,EAX			// Puts the low-order bytes of the timestamp in ECX
+004031C8   . 0F31           RDTSC			// Gets again the timestamp
+004031CA   . 29C8           SUB EAX,ECX			// Gets the difference between both RDTSC calls
+004031CC   . 3D 00010000    CMP EAX,100			// If it is bigger than 100 clock cycles 
+004031D1   . 0F8F 01010000  JG crackme.004032D8		// Jumps to a place that fucs the program XD
+
+· JUST NOP 004031D1 AND EVERYTHING WILL BE OK! :P
+    > Substitute the jump by NOP instructions
+    > Save to file       
+
+NOW LET'S GET BACK TO THE NUMBER CHECK
+
+· A fixed byte 0x01 (from 00402020)  is pushed into the stack
+· Then it is popped. If it is not 0x01, then the input is an "incorrect number"
+    > OK
+
+· And here it is, the real checking sequence
+
+00403208   . 6A 10          PUSH 10                                  ; /Count = 10 (16.)
+0040320A   . 68 28204000    PUSH crackme.00402028                    ; |Buffer = crackme.00402028
+0040320F   . 6A 64          PUSH 64                                  ; |ControlID = 64 (100.)
+00403211   . FF75 08        PUSH DWORD PTR SS:[EBP+8]                ; |hWnd
+00403214   . FF15 FC404000  CALL DWORD PTR DS:[<&USER32.GetDlgItemTe>; \GetDlgItemTextA
+
+// The number is read as a string. The number of chars read are in EAX
+// And the string is saved in the buffer -> 00402028
+
+0040321A   . A1 28204000    MOV EAX,DWORD PTR DS:[402028]
+
+// First four chars are moved from the buffer into EAX 
+
+>>> Remember they are read in inverted order!!
+
+0040321F   . B9 37323934    MOV ECX,34393237
+
+// This number is moved into ECX 
+
+00403224   . 41             INC ECX
+
+// And incremented so it contains 0x34393238
+
+00403225   . 39C8           CMP EAX,ECX
+
+// Then compared with EAX, our input 
+
+00403227   .^75 B4          JNZ SHORT crackme.004031DD
+
+// This is a jump to the "Incorrect number" message if they are not equal
+
+>>> The first four chars of the number need to be "8294" <<<
+
+00403229   . 49             DEC ECX
+
+// Decrement ECX again (no real effect)
+
+0040322A   . A1 2C204000    MOV EAX,DWORD PTR DS:[40202C]
+
+// Read the next 4 chars (in inverted order) ¬¬
+
+0040322F   . B9 38313000    MOV ECX,303138
+
+// Loads 0x00303138 in ECX
+
+...
+
+// Does some operations with a string that says something about Tanzania
+
+...
+
+0040328D   > 39C8           CMP EAX,ECX
+
+// Compares the second 4 bytes of our serial to the contents of ECX
+
+0040328F   .^0F85 48FFFFFF  JNZ crackme.004031DD
+
+// And jumps to bad boy if they are not equal, thus the second 4 chars need to be "810"
+
+00403295   . E8 28000000    CALL crackme.004032C2
+0040329A   . 6A 00          PUSH 0                                   ; /Style = MB_OK|MB_APPLMODAL
+0040329C   . 68 0F104000    PUSH crackme.0040100F                    ; |Title = "CrackMe by Fereter"
+004032A1   . 68 4D104000    PUSH crackme.0040104D                    ; |Text = "Correct numner."
+004032A6   . FF75 08        PUSH DWORD PTR SS:[EBP+8]                ; |hOwner
+004032A9   . FF15 0C414000  CALL DWORD PTR DS:[<&USER32.MessageBoxA>>; \MessageBoxA
+
+// Shows the good boy message
+    
+
+[ SOLUTION: 8294810 ]  
